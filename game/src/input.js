@@ -1,9 +1,14 @@
 // Input: the keyboard and the pointer, folded into one small intent. Aim with the mouse or fly
-// with WASD / arrows; Space or a click burns a flare; P / Esc pauses; R restarts. A mouse that has
-// just moved steers, and any movement key takes control back, so the two never fight.
+// with WASD / arrows; Space or a click burns a flare; P / Esc pauses; R restarts. On the upgrade
+// screen the digits pick a boon and a click picks the card under it. A mouse that has just moved
+// steers, and any movement key takes control back, so the two never fight.
 
 const MOVE_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight']);
-const BLOCKED = new Set([...MOVE_KEYS, 'Space', 'Enter', 'KeyP', 'Escape', 'KeyR', 'KeyM']);
+const BLOCKED = new Set([...MOVE_KEYS, 'Space', 'Enter', 'KeyP', 'Escape', 'KeyR', 'KeyM', 'Digit1', 'Digit2', 'Digit3']);
+const CHOICE_KEYS = {
+  Digit1: 0, Digit2: 1, Digit3: 2,
+  Numpad1: 0, Numpad2: 1, Numpad3: 2,
+};
 
 /** The pointer's distance in pixels at which mouse steering reaches full speed. */
 const POINTER_FULL_SPEED = 34;
@@ -18,7 +23,7 @@ const POINTER_FULL_SPEED = 34;
 export function createInput(canvas) {
   const held = new Set();
   const pointer = { x: 0, y: 0, steering: false, seen: false };
-  const pressed = { start: false, pause: false, restart: false, flare: false, mute: false };
+  const pressed = { start: false, pause: false, restart: false, flare: false, mute: false, choice: -1, pick: null };
 
   function localPoint(event) {
     const rect = canvas.getBoundingClientRect();
@@ -33,6 +38,7 @@ export function createInput(canvas) {
       if (event.code === 'KeyP' || event.code === 'Escape') pressed.pause = true;
       if (event.code === 'KeyR') pressed.restart = true;
       if (event.code === 'KeyM') pressed.mute = true;
+      if (CHOICE_KEYS[event.code] !== undefined) pressed.choice = CHOICE_KEYS[event.code];
     }
     if (MOVE_KEYS.has(event.code)) {
       held.add(event.code);
@@ -62,6 +68,7 @@ export function createInput(canvas) {
     pointer.seen = true;
     pressed.start = true;
     pressed.flare = true;
+    pressed.pick = { x: point.x, y: point.y };
   }
 
   window.addEventListener('keydown', onKeyDown);
@@ -78,6 +85,8 @@ export function createInput(canvas) {
       pressed.restart = false;
       pressed.flare = false;
       pressed.mute = false;
+      pressed.choice = -1;
+      pressed.pick = null;
       return actions;
     },
     direction() {

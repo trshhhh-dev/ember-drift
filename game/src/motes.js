@@ -70,7 +70,7 @@ export function updateMotes(state, dt) {
     mote.x += mote.vx * dt;
     mote.y += mote.vy * dt;
 
-    const reach = player.radius + mote.radius + 6;
+    const reach = (player.radius + mote.radius + 6) * (state.mods?.magnet ?? 1);
     const dx = mote.x - player.x;
     const dy = mote.y - player.y;
     if (dx * dx + dy * dy <= reach * reach) {

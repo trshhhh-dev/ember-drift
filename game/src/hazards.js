@@ -1,8 +1,10 @@
-// Hazards: rain and gusts. Rain falls as slanted bright streaks and takes a bite of fuel on
-// contact. A gust is a wandering whirl of wind, a drifting oval of teal ribbons that shoves the
-// ember off its line and burns fuel while the ember is caught inside it. Both answer the flare.
+// Hazards: rain, gusts, storm hail and ash wisps. Rain falls as slanted bright streaks and takes a
+// bite of fuel on contact. A gust is a wandering whirl of wind, a drifting oval of teal ribbons
+// that shoves the ember off its line and burns fuel while the ember is caught inside it. Hail
+// shards fall hard and fast, and ash wisps are slow violet orbs that lean after the ember. All of
+// them answer the flare.
 
-import { RAIN, WORLD } from './config.js';
+import { HAIL, RAIN, WISP, WORLD } from './config.js';
 import { between, integerBetween } from './random.js';
 
 /** One raindrop at the top of the sky, or occasionally blown in from a side. */
@@ -13,14 +15,14 @@ export function spawnRain(state, difficulty) {
   const x = fromSide ? (random() < 0.5 ? -20 : state.width + 20) : between(random, -40, state.width + 40);
   const y = fromSide ? between(random, 40, state.height * 0.6) : -24;
   const fall = between(random, 0.85, 1.25) * difficulty.rainSpeed;
-  const slant = state.wind.x * 150 + between(random, -35, 35);
+  const slant = state.wind.x * 190 + between(random, -30, 30) - 26;
   state.drops.push({
     x,
     y,
     vx: slant + (fromSide ? (x < 0 ? 90 : -90) : 0),
     vy: fall,
-    length: between(random, 22, 42),
-    width: between(random, 1.4, 2.6),
+    length: between(random, 36, 66),
+    width: between(random, 2.0, 3.4),
     age: 0,
   });
   return true;
@@ -54,18 +56,142 @@ export function updateRain(state, dt) {
   return hits;
 }
 
-/** Rain in a circle is vaporised by a flare; returns the cleared drops' positions. */
-export function clearRainAround(state, x, y, radius) {
-  const cleared = [];
+/** One hail shard: bigger, faster and heavier than a raindrop, blown across by the wind. */
+export function spawnHail(state, difficulty) {
+  if (state.hail.length >= Math.min(HAIL.max, difficulty.maxDrops)) return false;
+  const random = state.random;
+  state.hail.push({
+    x: between(random, -30, state.width + 30),
+    y: -30,
+    vx: state.wind.x * 260 + between(random, -70, 70),
+    vy: between(random, 360, 470) + difficulty.rainSpeed * 0.8,
+    radius: HAIL.radius,
+    spin: random() * Math.PI * 2,
+    spinRate: between(random, -6, 6),
+    age: 0,
+  });
+  return true;
+}
+
+/** Fall every shard, spin it, and return the ones that struck the ember. */
+export function updateHail(state, dt) {
+  const player = state.player;
+  const hits = [];
   const keep = [];
+  for (let index = 0; index < state.hail.length; index += 1) {
+    const shard = state.hail[index];
+    shard.age += dt;
+    shard.vy += 150 * dt;
+    shard.x += shard.vx * dt;
+    shard.y += shard.vy * dt;
+    shard.spin += shard.spinRate * dt;
+    if (shard.x < -120 || shard.x > state.width + 120 || shard.y > state.height + 80) continue;
+
+    const reach = player.radius + shard.radius + 2;
+    const dx = shard.x - player.x;
+    const dy = shard.y - player.y;
+    if (player.invuln <= 0 && dx * dx + dy * dy <= reach * reach) {
+      hits.push({ x: shard.x, y: shard.y });
+      continue;
+    }
+    keep.push(shard);
+  }
+  state.hail = keep;
+  return hits;
+}
+
+/** An ash wisp: a slow violet orb that leans toward the ember as it drifts. */
+export function spawnWisp(state, difficulty) {
+  if (state.wisps.length >= difficulty.maxWisps) return false;
+  const random = state.random;
+  const edge = integerBetween(random, 0, 3);
+  const x = edge === 0 ? -30 : edge === 1 ? state.width + 30 : between(random, 80, state.width - 80);
+  const y = edge === 2 ? -30 : edge === 3 ? state.height + 30 : between(random, 110, state.height - 130);
+  state.wisps.push({
+    x,
+    y,
+    vx: between(random, -20, 20),
+    vy: between(random, -14, 24),
+    radius: WISP.radius,
+    age: 0,
+    phase: random() * Math.PI * 2,
+    drift: between(random, 0.7, 1.5),
+  });
+  return true;
+}
+
+/** Drift the wisps after the ember, and return the ones that touched it. */
+export function updateWisps(state, dt) {
+  const player = state.player;
+  const hits = [];
+  const keep = [];
+  for (let index = 0; index < state.wisps.length; index += 1) {
+    const wisp = state.wisps[index];
+    wisp.age += dt;
+    wisp.phase += dt * 2.4;
+    const dx = player.x - wisp.x;
+    const dy = player.y - wisp.y;
+    const distance = Math.hypot(dx, dy) || 1;
+    const pull = 46 * wisp.drift;
+    wisp.vx += (dx / distance) * pull * dt + Math.cos(wisp.phase) * 8 * dt;
+    wisp.vy += (dy / distance) * pull * dt + Math.sin(wisp.phase * 1.3) * 8 * dt;
+    const speed = Math.hypot(wisp.vx, wisp.vy);
+    const cap = 96;
+    if (speed > cap) {
+      wisp.vx = (wisp.vx / speed) * cap;
+      wisp.vy = (wisp.vy / speed) * cap;
+    }
+    wisp.x += wisp.vx * dt;
+    wisp.y += wisp.vy * dt;
+
+    const reach = player.radius + wisp.radius;
+    if (player.invuln <= 0 && dx * dx + dy * dy <= reach * reach) {
+      hits.push({ x: wisp.x, y: wisp.y });
+      continue;
+    }
+    if (wisp.age < WISP.lifetime && wisp.x > -140 && wisp.x < state.width + 140 && wisp.y > -140 && wisp.y < state.height + 140) {
+      keep.push(wisp);
+    }
+  }
+  state.wisps = keep;
+  return hits;
+}
+
+/** A flare's circle clears rain, hail and wisps alike; returns every cleared position. */
+export function clearHazardsAround(state, x, y, radius) {
+  const cleared = [];
+  const radiusSq = radius * radius;
+
+  const keepDrops = [];
   for (let index = 0; index < state.drops.length; index += 1) {
     const drop = state.drops[index];
     const dx = drop.x - x;
     const dy = drop.y - y;
-    if (dx * dx + dy * dy <= radius * radius) cleared.push({ x: drop.x, y: drop.y });
-    else keep.push(drop);
+    if (dx * dx + dy * dy <= radiusSq) cleared.push({ x: drop.x, y: drop.y });
+    else keepDrops.push(drop);
   }
-  state.drops = keep;
+  state.drops = keepDrops;
+
+  const keepHail = [];
+  for (let index = 0; index < state.hail.length; index += 1) {
+    const shard = state.hail[index];
+    const dx = shard.x - x;
+    const dy = shard.y - y;
+    if (dx * dx + dy * dy <= radiusSq) cleared.push({ x: shard.x, y: shard.y });
+    else keepHail.push(shard);
+  }
+  state.hail = keepHail;
+
+  const keepWisps = [];
+  for (let index = 0; index < state.wisps.length; index += 1) {
+    const wisp = state.wisps[index];
+    const dx = wisp.x - x;
+    const dy = wisp.y - y;
+    if (dx * dx + dy * dy <= radiusSq) cleared.push({ x: wisp.x, y: wisp.y });
+    else keepWisps.push(wisp);
+  }
+  state.wisps = keepWisps;
+
   return cleared;
 }
 

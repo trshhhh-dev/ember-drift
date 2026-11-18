@@ -27,14 +27,15 @@ export function drawEmber(ctx, player, fuel, time) {
   const tail = player.heading + Math.PI;
   const speed = Math.hypot(player.vx, player.vy);
   const stretch = Math.min(1.4, speed / 340);
-  const length = (28 + stretch * 22) * scale;
+  const length = (42 + stretch * 40) * scale;
 
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   ctx.globalAlpha = blink;
 
-  glow(ctx, player.x, player.y, 70 * scale, 'rgba(255, 132, 46, 0.5)', 0.85);
-  glow(ctx, player.x, player.y, 34 * scale, 'rgba(255, 214, 138, 0.85)', 0.9);
+  glow(ctx, player.x, player.y, 108 * scale, 'rgba(255, 122, 40, 0.42)', 0.9);
+  glow(ctx, player.x, player.y, 60 * scale, 'rgba(255, 138, 50, 0.62)', 0.95);
+  glow(ctx, player.x, player.y, 30 * scale, 'rgba(255, 224, 156, 0.98)', 1);
 
   // One trailing flame: a leaf of light whose tip points away from the flight.
   ctx.save();
@@ -65,12 +66,12 @@ export function drawEmber(ctx, player, fuel, time) {
   ctx.strokeStyle = 'rgba(255, 218, 150, 0.34)';
   ctx.lineWidth = 1.2;
   ctx.beginPath();
-  ctx.arc(player.x, player.y, 16 * scale, 0, TAU);
+  ctx.arc(player.x, player.y, 21 * scale, 0, TAU);
   ctx.stroke();
 
   ctx.fillStyle = PALETTE.emberHot;
   ctx.beginPath();
-  ctx.arc(player.x, player.y, 5.6 * scale, 0, TAU);
+  ctx.arc(player.x, player.y, 8.4 * scale, 0, TAU);
   ctx.fill();
   ctx.restore();
 }
@@ -81,8 +82,8 @@ export function drawMote(ctx, mote, time) {
   const radius = mote.radius * pulse;
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  glow(ctx, mote.x, mote.y, 40 * pulse, 'rgba(255, 182, 68, 0.6)', 0.85);
-  glow(ctx, mote.x, mote.y, 17 * pulse, 'rgba(255, 243, 198, 0.95)', 1);
+  glow(ctx, mote.x, mote.y, 52 * pulse, 'rgba(255, 182, 68, 0.55)', 0.9);
+  glow(ctx, mote.x, mote.y, 23 * pulse, 'rgba(255, 243, 198, 1)', 1);
   ctx.fillStyle = PALETTE.moteHot;
   ctx.beginPath();
   ctx.arc(mote.x, mote.y, radius * 0.7, 0, TAU);
@@ -120,21 +121,22 @@ export function drawRain(ctx, drop) {
   const tailY = drop.y - (drop.vy / speed) * drop.length;
   ctx.save();
   ctx.lineCap = 'round';
-  ctx.strokeStyle = 'rgba(120, 190, 255, 0.18)';
-  ctx.lineWidth = drop.width + 3;
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.strokeStyle = 'rgba(96, 168, 255, 0.26)';
+  ctx.lineWidth = drop.width + 4.5;
   ctx.beginPath();
   ctx.moveTo(tailX, tailY);
   ctx.lineTo(drop.x, drop.y);
   ctx.stroke();
-  ctx.strokeStyle = 'rgba(205, 238, 255, 0.86)';
+  ctx.strokeStyle = 'rgba(188, 228, 255, 0.9)';
   ctx.lineWidth = drop.width;
   ctx.beginPath();
   ctx.moveTo(tailX, tailY);
   ctx.lineTo(drop.x, drop.y);
   ctx.stroke();
-  ctx.fillStyle = 'rgba(244, 252, 255, 0.95)';
+  ctx.fillStyle = 'rgba(248, 253, 255, 1)';
   ctx.beginPath();
-  ctx.arc(drop.x, drop.y, drop.width * 0.9, 0, TAU);
+  ctx.arc(drop.x, drop.y, drop.width * 1.1, 0, TAU);
   ctx.fill();
   ctx.restore();
 }
@@ -274,5 +276,243 @@ export function drawFlameGlyph(ctx, x, y, scale, fuel, time) {
   ctx.beginPath();
   ctx.ellipse(x, y + 2 * scale, 3 * scale, 5 * scale, 0, 0, TAU);
   ctx.fill();
+  ctx.restore();
+}
+
+/** A hail shard: a cold diamond with a short icy wake. */
+export function drawHail(ctx, shard) {
+  const size = shard.radius;
+  const speed = Math.hypot(shard.vx, shard.vy) || 1;
+  const tailX = shard.x - (shard.vx / speed) * size * 4.6;
+  const tailY = shard.y - (shard.vy / speed) * size * 4.6;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+
+  // The icy wake.
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = 'rgba(120, 200, 255, 0.32)';
+  ctx.lineWidth = size * 0.9;
+  ctx.beginPath();
+  ctx.moveTo(tailX, tailY);
+  ctx.lineTo(shard.x, shard.y);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(226, 246, 255, 0.8)';
+  ctx.lineWidth = size * 0.3;
+  ctx.stroke();
+
+  ctx.translate(shard.x, shard.y);
+  ctx.rotate(shard.spin);
+  glow(ctx, 0, 0, size * 4.2, 'rgba(150, 210, 255, 0.5)', 0.7);
+
+  ctx.fillStyle = 'rgba(214, 242, 255, 0.92)';
+  ctx.beginPath();
+  ctx.moveTo(0, -size * 1.5);
+  ctx.lineTo(size * 0.85, 0);
+  ctx.lineTo(0, size * 1.5);
+  ctx.lineTo(-size * 0.85, 0);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+  ctx.beginPath();
+  ctx.moveTo(0, -size * 0.9);
+  ctx.lineTo(size * 0.42, 0);
+  ctx.lineTo(0, size * 0.35);
+  ctx.lineTo(-size * 0.42, 0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+/** An ash wisp: a violet orb trailing dark tendrils, its core pulsing. */
+export function drawWisp(ctx, wisp, time) {
+  const pulse = 0.85 + 0.15 * Math.sin(time * 3.6 + wisp.phase);
+  const radius = wisp.radius * pulse;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+
+  glow(ctx, wisp.x, wisp.y, radius * 4.4, 'rgba(150, 92, 235, 0.55)', 0.85);
+  glow(ctx, wisp.x, wisp.y, radius * 1.7, 'rgba(221, 176, 255, 0.85)', 0.95);
+
+  // Tendrils dragged behind the wisp's motion.
+  const speed = Math.hypot(wisp.vx, wisp.vy) || 1;
+  const tailX = -wisp.vx / speed;
+  const tailY = -wisp.vy / speed;
+  ctx.strokeStyle = 'rgba(176, 120, 255, 0.5)';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  for (let index = 0; index < 3; index += 1) {
+    const spread = (index - 1) * 0.5;
+    ctx.beginPath();
+    ctx.moveTo(wisp.x, wisp.y);
+    ctx.quadraticCurveTo(
+      wisp.x + tailX * radius * 2.2 + tailY * spread * radius,
+      wisp.y + tailY * radius * 2.2 - tailX * spread * radius,
+      wisp.x + tailX * radius * 3.4,
+      wisp.y + tailY * radius * 3.4,
+    );
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = 'rgba(243, 227, 255, 0.95)';
+  ctx.beginPath();
+  ctx.arc(wisp.x, wisp.y, radius * 0.55, 0, TAU);
+  ctx.fill();
+  ctx.restore();
+}
+
+/** The storm boss: a vast dark eye ringed with lightning, its heart glowing through the cloud. */
+export function drawBoss(ctx, boss, time) {
+  const pulse = 1 + 0.02 * Math.sin(time * 1.6);
+  const rx = boss.rx * pulse;
+  const ry = boss.ry * pulse;
+  const flash = boss.hitFlash > 0 ? boss.hitFlash / 0.28 : 0;
+
+  ctx.save();
+  ctx.translate(boss.x, boss.y);
+
+  // A cold violet halo so the storm's mass reads against the night.
+  ctx.globalCompositeOperation = 'lighter';
+  glow(ctx, 0, 0, rx * 1.2, 'rgba(124, 92, 226, 0.22)', 1);
+
+  // The cloud body, dark against the sky.
+  const body = ctx.createRadialGradient(0, 0, rx * 0.12, 0, 0, rx);
+  body.addColorStop(0, 'rgba(24, 16, 46, 0.96)');
+  body.addColorStop(0.6, 'rgba(15, 10, 32, 0.92)');
+  body.addColorStop(1, 'rgba(10, 8, 24, 0)');
+  ctx.fillStyle = body;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, rx, ry, 0, 0, TAU);
+  ctx.fill();
+
+  // Rotating storm rims.
+  ctx.globalCompositeOperation = 'lighter';
+  for (let ring = 0; ring < 3; ring += 1) {
+    const spin = time * (0.5 + ring * 0.22) * boss.dir + boss.phase;
+    ctx.strokeStyle = ring === 1 ? 'rgba(255, 158, 92, 0.5)' : 'rgba(150, 120, 255, 0.42)';
+    ctx.lineWidth = 2.6 - ring * 0.5;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, rx * (0.94 - ring * 0.12), ry * (0.94 - ring * 0.12), spin * 0.05, spin, spin + Math.PI * 1.2);
+    ctx.stroke();
+  }
+
+  // The eye.
+  glow(ctx, 0, 0, rx * 0.5, 'rgba(255, 132, 74, 0.45)', 0.9);
+  glow(ctx, 0, 0, rx * 0.24, 'rgba(255, 216, 158, 0.9)', 0.95);
+  ctx.fillStyle = 'rgba(14, 8, 26, 0.9)';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, rx * 0.3, ry * 0.3, 0, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255, 226, 170, 0.95)';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, rx * 0.12, ry * 0.14, 0, 0, TAU);
+  ctx.fill();
+
+  // Crackling arcs around the rim.
+  ctx.strokeStyle = 'rgba(202, 190, 255, 0.65)';
+  ctx.lineWidth = 1.4;
+  for (let arc = 0; arc < 4; arc += 1) {
+    const start = time * (0.9 + arc * 0.2) + arc * 1.7;
+    ctx.beginPath();
+    for (let step = 0; step <= 5; step += 1) {
+      const angle = start + step * 0.16;
+      const radius = 0.78 + (step % 2) * 0.1;
+      const x = Math.cos(angle) * rx * radius;
+      const y = Math.sin(angle) * ry * radius;
+      if (step === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  if (flash > 0) {
+    ctx.globalAlpha = flash * 0.5;
+    ctx.fillStyle = 'rgba(255, 230, 190, 1)';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, rx, ry, 0, 0, TAU);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/** The storm shield: a breathing ring of violet light while a charge is held. */
+export function drawShieldRing(ctx, player, time) {
+  const pulse = 0.9 + 0.1 * Math.sin(time * 4.2);
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.55;
+  ctx.strokeStyle = 'rgba(199, 163, 255, 0.85)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(player.x, player.y, 30 * pulse, 0, TAU);
+  ctx.stroke();
+  ctx.globalAlpha = 0.22;
+  ctx.fillStyle = 'rgba(150, 110, 255, 0.6)';
+  ctx.beginPath();
+  ctx.arc(player.x, player.y, 30 * pulse, 0, TAU);
+  ctx.fill();
+  ctx.restore();
+}
+
+/** Lightning: a shrinking warning ring before the strike, then the bolt and its wash. */
+export function drawBolts(ctx, bolts, height) {
+  if (bolts.length === 0) return;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let index = 0; index < bolts.length; index += 1) {
+    const bolt = bolts[index];
+    if (!bolt.struck) {
+      const urgency = 1 - Math.max(0, bolt.warn) / 0.65;
+      const ringRadius = 56 - urgency * 22;
+      ctx.globalAlpha = 0.3 + urgency * 0.5;
+      const warn = ctx.createRadialGradient(bolt.x, bolt.y, 0, bolt.x, bolt.y, ringRadius);
+      warn.addColorStop(0, 'rgba(255, 154, 72, 0.5)');
+      warn.addColorStop(0.66, 'rgba(255, 116, 52, 0.2)');
+      warn.addColorStop(1, 'rgba(255, 80, 30, 0)');
+      ctx.fillStyle = warn;
+      ctx.beginPath();
+      ctx.arc(bolt.x, bolt.y, ringRadius, 0, TAU);
+      ctx.fill();
+
+      ctx.globalAlpha = 0.5 + urgency * 0.5;
+      ctx.strokeStyle = 'rgba(255, 220, 150, 0.95)';
+      ctx.lineWidth = 1.6 + urgency * 1.8;
+      ctx.beginPath();
+      ctx.arc(bolt.x, bolt.y, ringRadius, 0, TAU);
+      ctx.stroke();
+
+      // A small crosshair marks the exact landing spot.
+      ctx.globalAlpha = 0.35 + urgency * 0.4;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(bolt.x - 8, bolt.y);
+      ctx.lineTo(bolt.x + 8, bolt.y);
+      ctx.moveTo(bolt.x, bolt.y - 8);
+      ctx.lineTo(bolt.x, bolt.y + 8);
+      ctx.stroke();
+    } else {
+      const fade = Math.max(0, Math.min(1, bolt.life / 0.9));
+      ctx.globalAlpha = fade;
+      ctx.strokeStyle = 'rgba(255, 236, 190, 0.95)';
+      ctx.lineWidth = 4 * fade + 1;
+      ctx.beginPath();
+      ctx.moveTo(bolt.x + 8, 0);
+      for (let step = 1; step <= 6; step += 1) {
+        const t = step / 6;
+        const x = bolt.x + 8 + Math.sin(step * 2.3 + index) * 16 * (1 - t);
+        const y = t * bolt.y;
+        ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(170, 210, 255, 0.6)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(bolt.x - 6, 0);
+      ctx.lineTo(bolt.x + 4, bolt.y * 0.6);
+      ctx.lineTo(bolt.x - 4, bolt.y);
+      ctx.stroke();
+      glow(ctx, bolt.x, bolt.y, 90 * fade + 18, 'rgba(255, 200, 130, 0.55)', fade * 0.7);
+    }
+  }
   ctx.restore();
 }

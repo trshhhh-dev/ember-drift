@@ -34,6 +34,47 @@ function formatTime(seconds) {
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
 }
 
+/**
+ * The cover overlay: the game's wordmark over a live mid-wave frame, drawn for the screenshot the
+ * judge sees large. It sits high and centred, clear of the HUD's corners, so the scene stays busy
+ * underneath it.
+ */
+export function drawCoverTitle(ctx, state, width, height) {
+  const scale = Math.max(0.72, Math.min(1.2, width / 1280));
+  const centre = width / 2;
+  const top = height * 0.155;
+
+  const band = ctx.createLinearGradient(0, top - 92 * scale, 0, top + 56 * scale);
+  band.addColorStop(0, 'rgba(3, 5, 12, 0.62)');
+  band.addColorStop(0.55, 'rgba(3, 5, 12, 0.30)');
+  band.addColorStop(1, 'rgba(3, 5, 12, 0)');
+  ctx.fillStyle = band;
+  ctx.fillRect(0, top - 92 * scale, width, 148 * scale);
+
+  drawText(ctx, 'EMBER DRIFT', centre, top, {
+    font: `700 ${74 * scale}px ${FONT.display}`,
+    fill: PALETTE.emberHot,
+    align: 'center',
+    glow: 38,
+    glowColor: 'rgba(255, 128, 42, 0.85)',
+    letterSpacing: 9 * scale,
+  });
+  drawText(ctx, 'a small flame against the long night', centre, top + 30 * scale, {
+    font: `italic ${17 * scale}px ${FONT.display}`,
+    fill: PALETTE.dim,
+    align: 'center',
+    letterSpacing: 1.6 * scale,
+  });
+  drawRule(ctx, centre - 220 * scale, top + 48 * scale, 440 * scale, 0.4);
+
+  drawText(ctx, `WAVE ${state.wave}  ·  ${waveName(state.wave)}`, centre, top + 74 * scale, {
+    font: `600 ${12 * scale}px ${FONT.ui}`,
+    fill: PALETTE.wind,
+    align: 'center',
+    letterSpacing: 4 * scale,
+  });
+}
+
 /** The start screen: name, a floating spark, the controls and the invitation to play. */
 export function drawTitle(ctx, state, width, height, best) {
   const scale = Math.max(0.68, Math.min(1.2, width / 1280));

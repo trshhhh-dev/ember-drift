@@ -47,8 +47,8 @@ export function updatePlayer(state, intent, dt) {
   player.flareTime = Math.max(0, player.flareTime - dt);
   player.flareFlash = Math.max(0, player.flareFlash - dt);
 
-  const wantedX = intent.x * PLAYER.speed;
-  const wantedY = intent.y * PLAYER.speed;
+  const wantedX = intent.x * PLAYER.speed * (state.mods?.speed ?? 1);
+  const wantedY = intent.y * PLAYER.speed * (state.mods?.speed ?? 1);
   const answer = 1 - Math.exp(-PLAYER.accel * dt);
   player.vx += (wantedX - player.vx) * answer;
   player.vy += (wantedY - player.vy) * answer;

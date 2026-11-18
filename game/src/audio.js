@@ -134,6 +134,29 @@ export function createAudio() {
         tone({ frequency: 523.25, endFrequency: 523.25, type: 'sine', duration: 0.5, gain: 0.08 });
         tone({ frequency: 783.99, endFrequency: 783.99, type: 'sine', duration: 0.6, gain: 0.07, delay: 0.12 });
         tone({ frequency: 1046.5, endFrequency: 1046.5, type: 'sine', duration: 0.7, gain: 0.045, delay: 0.24 });
+      } else if (name === 'chain') {
+        // A chain milestone: a quick rising third, higher with every link.
+        const step = Math.min(MAX_PITCH_STEPS, Math.max(0, chain));
+        const base = 620 * Math.pow(2, step / 24);
+        tone({ frequency: base, endFrequency: base * 1.26, type: 'triangle', duration: 0.12, gain: 0.05 });
+        tone({ frequency: base * 1.5, endFrequency: base * 1.9, type: 'sine', duration: 0.16, gain: 0.04, delay: 0.05 });
+      } else if (name === 'upgrade') {
+        // Taking a boon: a warm two-note chime with a shimmer on top.
+        tone({ frequency: 523.25, endFrequency: 659.25, type: 'triangle', duration: 0.28, gain: 0.09 });
+        tone({ frequency: 783.99, endFrequency: 1046.5, type: 'sine', duration: 0.34, gain: 0.06, delay: 0.07 });
+        tone({ frequency: 1567.98, endFrequency: 1567.98, type: 'sine', duration: 0.4, gain: 0.025, delay: 0.14 });
+      } else if (name === 'waveclear') {
+        tone({ frequency: 392, endFrequency: 784, type: 'sine', duration: 0.5, gain: 0.1 });
+        tone({ frequency: 587.33, endFrequency: 1174.66, type: 'triangle', duration: 0.6, gain: 0.07, delay: 0.1 });
+        noise({ duration: 0.7, gain: 0.05, type: 'bandpass', frequency: 500, endFrequency: 3000, q: 1.1 });
+      } else if (name === 'boss') {
+        // The storm arrives: a low rumble under a rising siren.
+        tone({ frequency: 46, endFrequency: 38, type: 'sawtooth', duration: 1.6, gain: 0.09 });
+        tone({ frequency: 190, endFrequency: 320, type: 'sine', duration: 1.1, gain: 0.055, delay: 0.1 });
+        noise({ duration: 1.4, gain: 0.09, type: 'lowpass', frequency: 300, endFrequency: 120 });
+      } else if (name === 'shield') {
+        tone({ frequency: 1320, endFrequency: 1760, type: 'sine', duration: 0.22, gain: 0.05 });
+        tone({ frequency: 880, endFrequency: 880, type: 'triangle', duration: 0.3, gain: 0.035, delay: 0.03 });
       } else if (name === 'start') {
         tone({ frequency: 196, endFrequency: 392, type: 'triangle', duration: 0.5, gain: 0.1 });
         tone({ frequency: 587.33, endFrequency: 587.33, type: 'sine', duration: 0.5, gain: 0.05, delay: 0.16 });

@@ -36,8 +36,24 @@ export const PLAYER = {
 };
 
 /** Mote and raindrop sizes, and how many may be alive at once. */
-export const MOTE = { radius: 9, max: 10, lifetime: 30 };
+export const MOTE = { radius: 11, max: 12, lifetime: 30 };
 export const RAIN = { radius: 4, max: 60 };
+/** Storm hail: heavy shards that fall faster than rain and bite harder. */
+export const HAIL = { radius: 9, max: 30, fuel: 14 };
+/** Ash wisps: slow violet orbs that drift after the ember. */
+export const WISP = { radius: 12, max: 7, fuel: 16, lifetime: 9 };
+
+/** The boons offered between waves. */
+export const BOON = {
+  perWave: 3,
+  maxStacks: 3,
+  magnet: 0.45,
+  flare: 0.32,
+  regen: 0.4,
+  combo: 1.2,
+  speed: 0.09,
+  shieldSeconds: 26,
+};
 
 /** Night-sky colour palette, warm flame against a cold wind. */
 export const PALETTE = {

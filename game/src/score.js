@@ -47,9 +47,9 @@ export function updateScore(score, dt) {
 }
 
 /** Collect one mote: extend the chain, award its multiplied value, and return the points. */
-export function collectMote(score) {
+export function collectMote(score, window = WORLD.comboWindow) {
   score.combo += 1;
-  score.comboLeft = WORLD.comboWindow;
+  score.comboLeft = window;
   score.bestCombo = Math.max(score.bestCombo, score.combo);
   score.motes += 1;
   const points = 10 * multiplierOf(score);

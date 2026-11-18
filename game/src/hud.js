@@ -6,8 +6,11 @@ import { FONT, PALETTE, WORLD } from './config.js';
 import { displayScore, multiplierOf } from './score.js';
 import { inGust } from './hazards.js';
 import { waveName, WAVE_SECONDS } from './waves.js';
+import { bossRatio } from './boss.js';
+import { BOONS } from './boons.js';
 import { drawText, pulse, roundRectPath } from './ui.js';
 import { drawFlameGlyph } from './sprites.js';
+import { drawBoonIcon } from './upgrades.js';
 
 /** The warm colour of a chain at its current multiplier. */
 function comboColor(multiplier) {
@@ -71,30 +74,93 @@ function drawHeadline(ctx, state, width, height, best, scale) {
   if (state.score.combo >= 3) {
     const multiplier = multiplierOf(state.score);
     const color = comboColor(multiplier);
-    drawText(ctx, `×${multiplier}`, right, top + 102 * scale, {
-      font: `700 ${38 * scale}px ${FONT.mono}`,
+    drawText(ctx, 'CHAIN', right, top + 84 * scale, {
+      font: `700 ${10 * scale}px ${FONT.ui}`,
+      fill: PALETTE.dim,
+      align: 'right',
+      letterSpacing: 3 * scale,
+    });
+    drawText(ctx, `×${multiplier}`, right, top + 124 * scale, {
+      font: `700 ${48 * scale}px ${FONT.mono}`,
       fill: color,
       align: 'right',
-      glow: 20,
+      glow: 24,
       glowColor: color,
     });
-    drawText(ctx, `${state.score.combo} MOTES`, right, top + 122 * scale, {
-      font: `600 ${10 * scale}px ${FONT.ui}`,
+    drawText(ctx, `${state.score.combo} MOTES`, right, top + 144 * scale, {
+      font: `600 ${11 * scale}px ${FONT.ui}`,
       fill: PALETTE.dim,
       align: 'right',
       letterSpacing: 2.6 * scale,
     });
-    const chainWidth = 100 * scale;
+    const chainWidth = 120 * scale;
     const chainX = right - chainWidth;
-    const chainY = top + 130 * scale;
+    const chainY = top + 152 * scale;
     ctx.save();
     ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-    roundRectPath(ctx, chainX, chainY, chainWidth, 3 * scale, 2 * scale);
+    roundRectPath(ctx, chainX, chainY, chainWidth, 4 * scale, 2 * scale);
     ctx.fill();
     ctx.fillStyle = color;
-    roundRectPath(ctx, chainX, chainY, chainWidth * Math.max(0, state.score.comboLeft / WORLD.comboWindow), 3 * scale, 2 * scale);
+    roundRectPath(ctx, chainX, chainY, chainWidth * Math.max(0, Math.min(1, state.score.comboLeft / state.mods.combo)), 4 * scale, 2 * scale);
     ctx.fill();
     ctx.restore();
+  }
+}
+
+/** The storm's health bar, centred at the top while a boss wave is up. */
+function drawBossBar(ctx, state, width, scale) {
+  if (state.boss === null) return;
+  const barWidth = 380 * scale;
+  const barHeight = 10 * scale;
+  const x = width / 2 - barWidth / 2;
+  const y = 30 * scale;
+  const ratio = bossRatio(state.boss);
+  drawText(ctx, 'STORM', x, y - 9 * scale, {
+    font: `700 ${10 * scale}px ${FONT.ui}`,
+    fill: PALETTE.danger,
+    letterSpacing: 4 * scale,
+  });
+  drawText(ctx, `${Math.ceil(ratio * 100)}%`, x + barWidth, y - 9 * scale, {
+    font: `600 ${10 * scale}px ${FONT.mono}`,
+    fill: PALETTE.dim,
+    align: 'right',
+  });
+  ctx.save();
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+  roundRectPath(ctx, x, y, barWidth, barHeight, barHeight / 2);
+  ctx.fill();
+  ctx.fillStyle = ratio > 0.3 ? 'rgba(255, 120, 96, 0.9)' : 'rgba(255, 200, 120, 0.9)';
+  roundRectPath(ctx, x, y, Math.max(2, barWidth * ratio), barHeight, barHeight / 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+/** The boons taken, as a small tray under the score, so the run's build reads at a glance. */
+function drawBoonTray(ctx, state, left, top, scale) {
+  let index = 0;
+  for (let boonIndex = 0; boonIndex < BOONS.length; boonIndex += 1) {
+    const boon = BOONS[boonIndex];
+    const stacks = state.boons.stacks[boon.id] ?? 0;
+    if (stacks === 0) continue;
+    const x = left + 15 * scale + index * 40 * scale;
+    const y = top + 14 * scale;
+    ctx.save();
+    ctx.fillStyle = 'rgba(8, 12, 26, 0.55)';
+    ctx.strokeStyle = `${boon.color}55`;
+    ctx.lineWidth = 1;
+    roundRectPath(ctx, x - 14 * scale, y - 14 * scale, 28 * scale, 28 * scale, 8 * scale);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+    drawBoonIcon(ctx, boon.id, x, y, 8.5 * scale, state.time);
+    if (stacks > 1) {
+      drawText(ctx, String(stacks), x + 16 * scale, y + 13 * scale, {
+        font: `700 ${9 * scale}px ${FONT.mono}`,
+        fill: boon.color,
+        align: 'right',
+      });
+    }
+    index += 1;
   }
 }
 
@@ -277,6 +343,8 @@ function drawGustWarning(ctx, state, width, height, scale) {
 export function drawHud(ctx, state, width, height, best) {
   const scale = Math.max(0.72, Math.min(1.18, width / 1280));
   drawHeadline(ctx, state, width, height, best, scale);
+  drawBossBar(ctx, state, width, scale);
+  drawBoonTray(ctx, state, 34 * scale, 30 * scale + 82 * scale, scale);
   drawFuel(ctx, state, width, height, scale);
   drawFlare(ctx, state, width, height, scale);
   drawWaveBanner(ctx, state, width, height, scale);

@@ -66,6 +66,35 @@ export function steer(state, care = 1, hunger = 1) {
     }
   }
 
+  for (let index = 0; index < state.hail.length; index += 1) {
+    const shard = state.hail[index];
+    const at = 0.26;
+    const shardX = shard.x + shard.vx * at;
+    const shardY = shard.y + shard.vy * at;
+    const dx = player.x - shardX;
+    const dy = player.y - shardY;
+    const distance = Math.hypot(dx, dy) || 1;
+    const reach = 150 + care * 36;
+    if (distance < reach) {
+      const weight = ((reach - distance) / reach) * care * 2.6;
+      x += (dx / distance) * weight;
+      y += (dy / distance) * weight;
+    }
+  }
+
+  for (let index = 0; index < state.wisps.length; index += 1) {
+    const wisp = state.wisps[index];
+    const dx = player.x - wisp.x;
+    const dy = player.y - wisp.y;
+    const distance = Math.hypot(dx, dy) || 1;
+    const reach = 170 + care * 40;
+    if (distance < reach) {
+      const weight = ((reach - distance) / reach) * care * 2.2;
+      x += (dx / distance) * weight;
+      y += (dy / distance) * weight;
+    }
+  }
+
   // Gusts: leave the whirl along the shortest way out of its oval, and lean upwind outside it.
   for (let index = 0; index < state.gusts.length; index += 1) {
     const gust = state.gusts[index];
@@ -78,6 +107,33 @@ export function steer(state, care = 1, hunger = 1) {
       x += (dx / distance) * weight;
       y += (dy / distance) * weight;
       x -= gust.direction * care * 0.5;
+    }
+  }
+
+  // The boss: stay out of the storm's body and out of the lightning's landing ring.
+  if (state.boss !== null) {
+    const boss = state.boss;
+    const dx = (player.x - boss.x) / (boss.rx * 0.9);
+    const dy = (player.y - boss.y) / (boss.ry * 0.9);
+    const inside = dx * dx + dy * dy;
+    if (inside <= 1.6) {
+      const distance = Math.hypot(dx, dy) || 0.001;
+      const weight = care * (inside <= 1 ? 4 : 1.6);
+      x += (dx / distance) * weight;
+      y += (dy / distance) * weight;
+    }
+  }
+  for (let index = 0; index < state.bolts.length; index += 1) {
+    const bolt = state.bolts[index];
+    if (bolt.struck) continue;
+    const dx = player.x - bolt.x;
+    const dy = player.y - bolt.y;
+    const distance = Math.hypot(dx, dy) || 1;
+    const reach = 120 + care * 40;
+    if (distance < reach) {
+      const weight = ((reach - distance) / reach) * care * 3;
+      x += (dx / distance) * weight;
+      y += (dy / distance) * weight;
     }
   }
 
@@ -101,6 +157,14 @@ export function shouldFlare(state) {
   for (let index = 0; index < state.drops.length; index += 1) {
     const drop = state.drops[index];
     if (Math.hypot(drop.x - player.x, drop.y - player.y) < 76) return true;
+  }
+  for (let index = 0; index < state.hail.length; index += 1) {
+    const shard = state.hail[index];
+    if (Math.hypot(shard.x - player.x, shard.y - player.y) < 90) return true;
+  }
+  for (let index = 0; index < state.wisps.length; index += 1) {
+    const wisp = state.wisps[index];
+    if (Math.hypot(wisp.x - player.x, wisp.y - player.y) < 88) return true;
   }
   return false;
 }

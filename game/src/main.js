@@ -4,12 +4,17 @@
 // and the ?shot=start|play|end staging used for screenshots.
 
 import { BEST_KEY, MAX_FRAME, STEP } from './config.js';
-import { createWorld, EVENT_COLLECT, EVENT_DENY, EVENT_FLARE, EVENT_HIT, EVENT_OVER, EVENT_WAVE } from './world.js';
-import { createRenderer, SCREEN_OVER, SCREEN_PAUSED, SCREEN_PLAY, SCREEN_TITLE } from './render.js';
+import {
+  createWorld, EVENT_BOSS, EVENT_BOSS_DOWN, EVENT_COLLECT, EVENT_DENY, EVENT_FLARE, EVENT_HIT,
+  EVENT_OVER, EVENT_SHIELD, EVENT_WAVE,
+} from './world.js';
+import { createRenderer, SCREEN_OVER, SCREEN_PAUSED, SCREEN_PLAY, SCREEN_TITLE, SCREEN_UPGRADE } from './render.js';
 import { createInput } from './input.js';
 import { createAudio } from './audio.js';
 import { stageShot } from './shots.js';
-import { displayScore } from './score.js';
+import { displayScore, multiplierOf } from './score.js';
+import { applyBoon, boonById, rollBoons } from './boons.js';
+import { boonAtPoint } from './upgrades.js';
 
 const params = new URLSearchParams(window.location.search);
 const shot = params.get('shot');
@@ -72,6 +77,7 @@ function runGame() {
   let accumulator = 0;
   let flareQueued = false;
   let overAt = 0;
+  let lastMultiplier = 1;
   let last = performance.now();
 
   // A moment after the flame goes out before the results take input, so a flare pressed at death
@@ -93,6 +99,7 @@ function runGame() {
     accumulator = 0;
     flareQueued = false;
     newBest = false;
+    lastMultiplier = 1;
     audio.play('start');
     announce('Ember lit. Collect motes to feed the flame. Wave 1.');
   }
@@ -126,17 +133,57 @@ function runGame() {
     announce('Playing.');
   }
 
+  /** Between waves: offer three boons and hold the night still until one is taken. */
+  function enterUpgrade() {
+    rollBoons(world.state);
+    screen = SCREEN_UPGRADE;
+    accumulator = 0;
+    audio.play('wave');
+    announce(`Wave ${world.state.wave}. Choose a boon: 1, 2 or 3.`);
+  }
+
+  /** Take the offered boon at `index`, then fly on. */
+  function pickBoon(index) {
+    if (screen !== SCREEN_UPGRADE) return;
+    const choices = world.state.boons.choices;
+    if (index < 0 || index >= choices.length) return;
+    const boon = boonById(choices[index]);
+    applyBoon(world.state, choices[index]);
+    screen = SCREEN_PLAY;
+    accumulator = 0;
+    audio.play('upgrade');
+    announce(`${boon === null ? 'Boon' : boon.name} taken. Wave ${world.state.wave}.`);
+  }
+
   function handleEvents(events) {
-    if (events & EVENT_COLLECT) audio.play('collect', world.state.score.combo);
+    if (events & EVENT_COLLECT) {
+      const score = world.state.score;
+      audio.play('collect', score.combo);
+      const multiplier = multiplierOf(score);
+      if (multiplier > lastMultiplier) audio.play('chain', score.combo);
+      lastMultiplier = multiplier;
+    }
     if (events & EVENT_HIT) {
       audio.play('hit');
-      announce(`Rain hit. Fuel ${Math.ceil(world.state.fuel)} percent.`);
+      announce(`Hit. Fuel ${Math.ceil(world.state.fuel)} percent.`);
     }
     if (events & EVENT_FLARE) audio.play('flare');
     if (events & EVENT_DENY) audio.play('deny');
+    if (events & EVENT_SHIELD) audio.play('shield');
     if (events & EVENT_WAVE) {
-      audio.play('wave');
-      announce(`Wave ${world.state.wave}. Fuel ${Math.ceil(world.state.fuel)} percent.`);
+      if (world.state.wave > 1) enterUpgrade();
+      else {
+        audio.play('wave');
+        announce(`Wave ${world.state.wave}. Fuel ${Math.ceil(world.state.fuel)} percent.`);
+      }
+    }
+    if (events & EVENT_BOSS) {
+      audio.play('boss');
+      announce(`Storm boss. Break it with flares and motes.`);
+    }
+    if (events & EVENT_BOSS_DOWN) {
+      audio.play('waveclear');
+      announce(`Storm broken. Fuel ${Math.ceil(world.state.fuel)} percent.`);
     }
     if (events & EVENT_OVER) endRun();
   }
@@ -167,6 +214,23 @@ function runGame() {
 
     if (screen === SCREEN_TITLE) {
       if (actions.start || actions.flare || actions.restart) startRun();
+      return;
+    }
+
+    if (screen === SCREEN_UPGRADE) {
+      if (actions.restart) {
+        startRun();
+        return;
+      }
+      if (actions.choice >= 0) {
+        pickBoon(actions.choice);
+        return;
+      }
+      if (actions.pick !== null) {
+        const size = renderer.size();
+        const index = boonAtPoint(size.width, size.height, actions.pick.x, actions.pick.y);
+        if (index >= 0) pickBoon(index);
+      }
       return;
     }
 
